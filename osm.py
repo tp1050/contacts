@@ -3,6 +3,8 @@ import requests
 from geopy.distance import distance
 import json
 import os
+import concurrent.futures
+
 
 center_lat = 35.6892
 center_lon = 51.3890
@@ -64,15 +66,17 @@ def find_doctors_nearby(lat, lon, phrases=None, amenities=None, radius_meters=50
 def search_tehran():
     total_steps = ((int(min_lat * 1e6) - int(max_lat * 1e6)) // step_size + 1) * ((int(max_lon * 1e6) - int(min_lon * 1e6)) // step_size + 1)
     current_step = 0
-    for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
-        for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
-            ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases)
-           # ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,medical_amenities=medical_amenities)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:  # Create a thread pool
+        futures = []
+        for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
+            for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
+                ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases)
+              # ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,medical_amenities=medical_amenities)
 
-            current_step += 1
-            progress = (current_step / total_steps) * 100
-            os.system('cls' if os.name == 'nt' else 'clear')
-            print(f">> Searching Latitude={lat / 1000000}, Longitude={lon / 1000000} ")
-            print(f">> Progress: {progress:.2f}% completed")
+                current_step += 1
+                progress = (current_step / total_steps) * 100
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print(f">> Searching Latitude={lat / 1000000}, Longitude={lon / 1000000} ")
+                print(f">> Progress: {progress:.2f}% completed")
 
 search_tehran()
