@@ -14,8 +14,10 @@ step_size = 500
 
 beauty_phrases = ["doctor"," متخصص پزشک","مطب زیبایی", "پوست و مو"]
 url = "http://192.168.1.7:12345/api/interpreter"
+
 medical_Est = [ "کلینیک_زیبایی","health_care","دکتر","پزشک","مطب","حکیم" ,"midwife", "doctors", "doctor", "shop=beauty", "health", "healthcare", "beutician", "healthcare=doctor", "healthcare=dentist", "healthcare=midwife"]
-def q_q(phrase, lat, lon, radius_meters=5000):
+medical_Est=["doctor"]
+def q_q(phrase, lat, lon, radius_meters=500000):
     query = f"""
     [out:json];
     ( 
@@ -86,7 +88,7 @@ def search_tehran():
         futures = []
         for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
             for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
-                futures.append(executor.submit(find_doctors_nearby, lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases))
+                # futures.append(executor.submit(find_doctors_nearby, lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases))
                 futures.append(executor.submit(find_doctors_nearby, lat=lat / 1000000, lon=lon / 1000000,amenities=medical_Est))
 
 
