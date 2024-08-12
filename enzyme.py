@@ -1,6 +1,8 @@
 
 __enzyme={
 "access":"",
+"addr":"address.street",
+"address":"address.street",
 "addr:city":"address.city",
 "addr:country":"address.country",
 "addr:floor":"address.street",
@@ -49,7 +51,7 @@ __enzyme={
 "opening_hours":"opening_hours",
 "operator":"",
 "operator:type":"",
-"osm_id":"note",
+"osm_id":"osm_id",
 "parking":"",
 "payment:cards":"",
 "payment:cash":"",
@@ -60,7 +62,7 @@ __enzyme={
 "phone":"phone",
 "photo":"photo",
 "public":"",
-"shop":"categoury",
+"shop":"category",
 "source":"",
 "start_date":"",
 "type":"",
@@ -74,7 +76,8 @@ from zto3.vcf.fvcf import OSM_VCF
 from glob import glob
 for f in glob('returns/json/*.json'):
     j=json.loads(Path(f).read_text())
-    Path(f'{f[:-5]}.vcf').write_text(str(OSM_VCF(__enzyme,**j)))
+    s=str(OSM_VCF(__enzyme,**j))
+    if len(s)>1:Path(f'{f[:-5]}.vcf').write_text(s)
 
 # j=json.loads(Path('r.json').read_text())
 # Path('some.vcf').write_text(str(OSM_VCF(__enzyme,**j)))

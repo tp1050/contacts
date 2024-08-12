@@ -1,10 +1,6 @@
-from zto3.statics import MTN, MCI, RITEL, MOB
 import requests
-from geopy.distance import distance
 import json
 import os
-import concurrent.futures
-
 
 center_lat = 35.6892
 center_lon = 51.3890
@@ -13,14 +9,14 @@ max_lat, max_lon = 35.5848, 51.5853
 
 # min_lat, min_lon = 25.0000, 44.0000  # Approximate southwest corner of Iran
 # max_lat, max_lon = 39.0000, 63.0000
-step_size = 50000
+step_size = 10000
 
 beauty_phrases = ["doctor"," متخصص پزشک","مطب زیبایی", "پوست و مو"]
 url = "http://192.168.1.7:12345/api/interpreter"
 
-medical_Est = [  "doctors", "doctor", "health", "healthcare", "کلینیک_زیبایی","health_care","دکتر","پزشک","مطب","حکیم" ,"beutician", "healthcare=doctor"]
+medical_Est = ["clinic",  "doctors", "doctor", "health", "healthcare", "کلینیک_زیبایی","health_care","دکتر","پزشک","مطب","حکیم" ,"beutician", "healthcare=doctor"]
 # medical_Est=["doctor"]
-def q_q(phrase, lat, lon, radius_meters=50000):
+def q_q(phrase, lat, lon, radius_meters=2500):
     query = f"""
     [out:json];
     ( 
@@ -30,11 +26,14 @@ def q_q(phrase, lat, lon, radius_meters=50000):
     """
     return query
 
-def am_q(amenity,lat, lon, radius_meters=25000):
+def am_q(amenity,lat, lon, radius_meters=2500):
     query = f"""
     [out:json];
     (
       node["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
+      way["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
+      relation["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
+
     );
     out center;
     """
@@ -84,14 +83,14 @@ def search_tehran():
     futures = []
     for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
         for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
-            #ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases)
-            ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,amenities=medical_Est)
+            ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases)
+            #ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,amenities=medical_Est)
 
             current_step += 1
             progress = (current_step / total_steps) * 100
-            # os.system('cls' if os.name == 'nt' else 'clear')
-           # print(f">> Searching Latitude={lat / 1000000}, Longitude={lon / 1000000} ")
-            #print(f">> Progress: {progress:.2f}% c--ompleted")
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(f">> Searching Latitude={lat / 1000000}, Longitude={lon / 1000000} ")
+            print(f">> Progress: {progress:.2f}% c--ompleted")
 # def search_tehran():
 #     total_steps = ((int(min_lat * 1e6) - int(max_lat * 1e6)) // step_size + 1) * ((int(max_lon * 1e6) - int(min_lon * 1e6)) // step_size + 1)
 #     current_step = 0
