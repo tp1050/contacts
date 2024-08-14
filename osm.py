@@ -1,113 +1,113 @@
 import requests
 import json
-import os
+ways=[]
+amenity=["clinic",  "doctors", "doctor", "health", "healthcare", "کلینیک_زیبایی","health_care","دکتر","پزشک","مطب","حکیم" ,"beutician", "healthcare=doctor"]
+f = """[out:json];
+(
+  way["highway"]["name"](35.6007,51.2534,35.8086,51.5602);
+);
+out body;
+>;
+out skel qt;"""
+overpass_url = "http://192.168.1.7:12345/api/interpreter"
 
-center_lat = 35.6892
-center_lon = 51.3890
-min_lat, min_lon = 35.7848, 51.2853
-max_lat, max_lon = 35.5848, 51.5853
+def fetch_data(query):
+    response = requests.get(overpass_url, params={'data': query})
+    if response.status_code == 200:
+        # print(response.content)
+        return response.json()
+    else:
+        print(response)
+        return None
 
-# min_lat, min_lon = 25.0000, 44.0000  # Approximate southwest corner of Iran
-# max_lat, max_lon = 39.0000, 63.0000
-step_size = 10000
-
-beauty_phrases = ["doctor"," متخصص پزشک","مطب زیبایی", "پوست و مو"]
-url = "http://192.168.1.7:12345/api/interpreter"
-
-medical_Est = ["clinic",  "doctors", "doctor", "health", "healthcare", "کلینیک_زیبایی","health_care","دکتر","پزشک","مطب","حکیم" ,"beutician", "healthcare=doctor"]
-# medical_Est=["doctor"]
-def q_q(phrase, lat, lon, radius_meters=2500):
-    query = f"""
+def fetch_doctors(way_id):
+    ret=[]
+    for a in amenity:
+        doctor_query = f"""
     [out:json];
-    ( 
-    node(around:{radius_meters},{lat},{lon})["name"~"{phrase}"]["phone"];
-    );
-    out center;
+    way(id:{way_id});
+    node(w)["amenity"~"{a}"];
+    out;
     """
-    return query
+        data = fetch_data(doctor_query)
+        ret.extend([elem for elem in data['elements'] if elem['type'] == 'node']) if data else []
+    return ret
 
-def am_q(amenity,lat, lon, radius_meters=2500):
-    query = f"""
+# data = fetch_data(f)
+# if not data:
+#     exit()
+# else :print(data)
+
+# ways = [{
+#     'id': element['id'],
+#     'name': element.get('tags', {}).get('name', 'Unknown'),
+#     'highway': element.get('tags', {}).get('highway', 'Unknown'),
+#     'nodes': element['nodes']
+# } for element in data['elements'] if element['type'] == 'way']
+
+# for way in ways:
+#     print(f"ID: {way['id']}, Name: {way['name']}, Type: {way['highway']}")
+#     doctors = fetch_doctors(way['id'])
+    
+#     if doctors:
+#         print(f"Found {len(doctors)} doctor(s) along way {way['id']} ({way['name']}):")
+#         for doctor in doctors:
+#             doctor_name = doctor.get('tags', {}).get('name', 'Unnamed')
+#             print(f"  - Doctor: {doctor_name} (Node ID: {doctor['id']})")
+            
+#             with open(f'{doctor["id"]}.json', 'w') as f:
+#                 json.dump(doctor, f, indent=2,ensure_ascii=False)
+#     else:
+#         print(f"No doctors found along way {way['id']} ({way['name']})")
+
+# with open('ways.json', 'w') as f:
+#     json.dump(ways, f, indent=2,ensure_ascii=False)
+with open('ways.json', 'r+') as f:
+    ways=json.load( f)
+def fetch_doctors_near_way(way_id, distance=100):
+    doctor_query = f"""
     [out:json];
+    way(id:{way_id});
     (
-      node["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
-      way["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
-      relation["amenity"~".*{amenity}.*"](around:{radius_meters},{lat},{lon});
-
+      node(around:{distance})["amenity"="doctors"];
     );
     out center;
     """
-    return query
-def find_doctors_nearby(lat, lon, phrases=None, amenities=None, radius_meters=5000, url=url):
-    domain=[]
-    results=[]
-    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):return "bad coordinates"
-    if phrases:
-        domain=phrases
-        q_maker=q_q
-    if amenities:
-        domain=amenities
-        q_maker=am_q
-    for q in domain:   
-        resp = requests.get(url, params={'data': q_maker(q,lat,lon)})
-        try:
-            data = resp.json()
-            for element in data['elements']:
-                doc = {
-                    "lat": element.get('lat') or element.get('center', {}).get('lat'),
-                    "lon": element.get('lon') or element.get('center', {}).get('lon'),
-                    "osm_id": element['id'],
-                    "type": element['type'],
-                    **element.get('tags', {})
+    data = fetch_data(doctor_query)
+    return [elem for elem in data['elements'] if elem['type'] in ['node', 'way']] if data else []
+
+for way in ways:
+    print(f"ID: {way['id']}, Name: {way['name']}, Type: {way['highway']}")
+    doctors = fetch_doctors_near_way(way['id'])
+    if doctors:
+        print(f"Found {len(doctors)} doctor(s) near way {way['id']} ({way['name']}):")
+        for doctor in doctors:
+            # doctor_name = doctor.get('tags', {}).get('name', 'Unnamed')
+            # doctor_type = "Node" if doctor['type'] == 'node' else "Way"
+            # print(f"  - Doctor: {doctor_name} ({doctor_type} ID: {doctor['id']})")
+            doc = {
+                    "lat": doctor.get('lat') or doctor.get('center', {}).get('lat'),
+                    "lon": doctor.get('lon') or doctor.get('center', {}).get('lon'),
+                    "osm_id": doctor['id'],
+                    "type": doctor['type'],
+                    **doctor.get('tags', {})
                 }
-                if "phone" in doc or "mobile" in list(doc.keys()) or "telephone" in list(doc.keys()):
-                    results.append(doc)
-                    with open(f"returns/json3/{doc['osm_id']}.json", "w") as f:json.dump(doc, f, ensure_ascii=False)
-                else:
-                   with open("shit_tags.json","a+") as f:
-                       json.dump(list(doc.keys()),f)
-                   with open("speciality.json","a+") as f:
-                       json.dump(str(doc.get("healthcare:speciality",None)).split(';'),f,ensure_ascii=False)
-                       
-                    
-        except Exception as e:
-            print("error", resp, resp.url, str(e))
-            print(e.__traceback__)
-            # i=input()
-    return results
-
-def search_tehran():
-    total_steps = ((int(min_lat * 1e6) - int(max_lat * 1e6)) // step_size + 1) * ((int(max_lon * 1e6) - int(min_lon * 1e6)) // step_size + 1)
-    current_step = 0
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:  # Create a thread pool
-    futures = []
-    for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
-        for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
-            ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases)
-            #ret=find_doctors_nearby(lat=lat / 1000000, lon=lon / 1000000,amenities=medical_Est)
-
-            current_step += 1
-            progress = (current_step / total_steps) * 100
-            os.system('cls' if os.name == 'nt' else 'clear')
-            print(f">> Searching Latitude={lat / 1000000}, Longitude={lon / 1000000} ")
-            print(f">> Progress: {progress:.2f}% c--ompleted")
-# def search_tehran():
-#     total_steps = ((int(min_lat * 1e6) - int(max_lat * 1e6)) // step_size + 1) * ((int(max_lon * 1e6) - int(min_lon * 1e6)) // step_size + 1)
-#     current_step = 0
-
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:  # Create a thread pool
-#         futures = []
-#         for lat in range(int(min_lat * 1e6), int(max_lat * 1e6), -step_size):
-#             for lon in range(int(min_lon * 1e6), int(max_lon * 1e6), step_size):
-#                 # futures.append(executor.submit(find_doctors_nearby, lat=lat / 1000000, lon=lon / 1000000,phrases=beauty_phrases))
-#                 futures.append(executor.submit(find_doctors_nearby, lat=lat / 1000000, lon=lon / 1000000,amenities=medical_Est))
-
-
-#         for future in concurrent.futures.as_completed(futures):
-#             # ... (optional: handle results or errors from each thread) ...
-#             current_step += 1
-#             progress = (current_step / total_steps) * 100
-#             os.system('cls' if os.name == 'nt' else 'clear')
-#             print(f">> Progress: {progress:.2f}% completed\n {future}")
-search_tehran()
-print('doool')
+            if "phone" in doc or "mobile" in list(doc.keys()) or "telephone" in list(doc.keys()):
+                # results.append(doc)
+                with open(f"returns/json3/{doc['osm_id']}.json", "w") as f:json.dump(doc, f, ensure_ascii=False)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            # with open(f'returns/json2/{doctor["id"]}.json', 'w') as f:
+            #     json.dump(doctor, f, indent=2, ensure_ascii=False)
+    else:
+        print(f"No doctors found near way {way['id']} ({way['name']})")

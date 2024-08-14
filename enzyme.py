@@ -29,7 +29,7 @@ __enzyme={
 "email":"email",
 "emergency":"",
 "fax":"phone",
-"healthcare":"category",
+"healthcare":"healthcare",
 "healthcare:speciality":"category",
 "image":"photo",
 "instagram":"url",
@@ -68,16 +68,19 @@ __enzyme={
 "type":"",
 "unit":"address.unit",
 "website":"url",
+"whatsapp":"phone",
+"instagram":"url",
+"telegram":"phone",
 "wheelchair":"",
 }
 from pathlib import Path
 import json 
 from zto3.vcf.fvcf import OSM_VCF
 from glob import glob
-for f in glob('returns/json/*.json'):
+for f in glob('returns/json3/*.json'):
     j=json.loads(Path(f).read_text())
     s=str(OSM_VCF(__enzyme,**j))
-    if len(s)>1:Path(f'{f[:-5]}.vcf').write_text(s)
+    if len(s)>1:Path(f'vcf/{j['osm_id']}.vcf').write_text(s)
 
 # j=json.loads(Path('r.json').read_text())
 # Path('some.vcf').write_text(str(OSM_VCF(__enzyme,**j)))
